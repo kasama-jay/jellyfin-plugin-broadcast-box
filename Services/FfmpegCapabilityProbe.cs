@@ -2,20 +2,36 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Jellyfin.Plugin.BroadcastBox.Models;
 using MediaBrowser.Controller.MediaEncoding;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.BroadcastBox.Services;
 
 /// <summary>Probes Jellyfin's configured FFmpeg binary without invoking a shell.</summary>
 public sealed class FfmpegCapabilityProbe : IDisposable
 {
+    private static readonly Action<ILogger, string, Exception?> LogProbeStarted = LoggerMessage.Define<string>(
+        LogLevel.Debug,
+        new EventId(1, "ProbeStarted"),
+        "Probing configured FFmpeg at {EncoderPath}");
+    private static readonly Action<ILogger, bool, bool, bool, Exception?> LogProbeCompleted = LoggerMessage.Define<bool, bool, bool>(
+        LogLevel.Information,
+        new EventId(2, "ProbeCompleted"),
+        "FFmpeg capability probe complete: whip={Whip}, libx264={Libx264}, libopus={Libopus}");
+    private static readonly Action<ILogger, string, Exception?> LogProbeFailed = LoggerMessage.Define<string>(
+        LogLevel.Warning,
+        new EventId(3, "ProbeFailed"),
+        "FFmpeg capability probe failed: {Reason}");
+
     private readonly IMediaEncoder _mediaEncoder;
+    private readonly ILogger<FfmpegCapabilityProbe> _logger;
     private readonly SemaphoreSlim _probeLock = new(1, 1);
     private FfmpegCapabilities? _cached;
 
     /// <summary>Initializes a new instance of the <see cref="FfmpegCapabilityProbe"/> class.</summary>
-    public FfmpegCapabilityProbe(IMediaEncoder mediaEncoder)
+    public FfmpegCapabilityProbe(IMediaEncoder mediaEncoder, ILogger<FfmpegCapabilityProbe> logger)
     {
         _mediaEncoder = mediaEncoder;
+        _logger = logger;
     }
 
     /// <summary>Gets the capabilities required for a Broadcast Box WHIP publisher.</summary>
@@ -27,6 +43,7 @@ public sealed class FfmpegCapabilityProbe : IDisposable
             return Unavailable(encoderPath, "Jellyfin does not have a usable configured FFmpeg binary.");
         }
 
+        LogProbeStarted(_logger, encoderPath, null);
         await _probeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -48,10 +65,12 @@ public sealed class FfmpegCapabilityProbe : IDisposable
                     ContainsEncoder(encoders, "libx264"),
                     ContainsEncoder(encoders, "libopus"),
                     null);
+                LogProbeCompleted(_logger, _cached.HasWhipMuxer, _cached.HasLibx264Encoder, _cached.HasLibopusEncoder, null);
             }
             catch (Exception exception) when (exception is IOException or InvalidOperationException or Win32Exception)
             {
                 _cached = Unavailable(encoderPath, exception.Message);
+                LogProbeFailed(_logger, exception.Message, exception);
             }
 
             return _cached;

@@ -47,13 +47,22 @@
       (() => {
         const pluginId = 'b4d3d127-a4cb-4d11-aab9-8b29fe6b74f4';
         const element = id => document.querySelector(`#${id}`);
-        const request = (type, path, data) => ApiClient.ajax({
-          type,
-          url: ApiClient.getUrl(path),
-          data: data === undefined ? undefined : JSON.stringify(data),
-          contentType: 'application/json'
-        });
+        const request = async (type, path, data) => {
+          const options = {
+            type,
+            url: ApiClient.getUrl(path),
+            data: data === undefined ? undefined : JSON.stringify(data),
+            contentType: 'application/json'
+          };
+          console.debug('[Broadcast Box] request', type, options.url);
+          const result = await ApiClient.fetch(options);
+          return typeof result?.json === 'function' ? result.json() : result;
+        };
         const show = (id, value) => { element(id).textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); };
+        const reportClientError = error => {
+          console.error('[Broadcast Box] action failed', error);
+          show('SessionStatus', error?.message || String(error));
+        };
 
         async function refresh() {
           try {
@@ -64,7 +73,7 @@
             show('CapabilityStatus', capabilities.isReady ? `FFmpeg ready: ${capabilities.version}` : `FFmpeg unavailable: ${capabilities.error || 'WHIP, libx264, and libopus are required.'}`);
             show('SessionStatus', session);
           } catch (error) {
-            show('SessionStatus', error.message || String(error));
+            reportClientError(error);
           }
         }
 
@@ -90,11 +99,11 @@
         element('StartBroadcast').addEventListener('click', async () => {
           try {
             show('SessionStatus', await request('POST', 'BroadcastBox/session', { itemId: element('ItemId').value.trim(), preset: Number(element('Preset').value) }));
-          } catch (error) { show('SessionStatus', error.message || String(error)); }
+          } catch (error) { reportClientError(error); }
         });
         element('StopBroadcast').addEventListener('click', async () => {
           try { await request('DELETE', 'BroadcastBox/session'); await refresh(); }
-          catch (error) { show('SessionStatus', error.message || String(error)); }
+          catch (error) { reportClientError(error); }
         });
       })();
     </script>

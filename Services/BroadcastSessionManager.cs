@@ -17,9 +17,13 @@ public sealed class BroadcastSessionManager : IDisposable
         LogLevel.Information,
         new EventId(1, "StoppingPublisher"),
         "Stopping Broadcast Box FFmpeg publisher {ProcessId}");
+    private static readonly Action<ILogger, Guid, BroadcastQualityPreset, Exception?> LogPublisherStarting = LoggerMessage.Define<Guid, BroadcastQualityPreset>(
+        LogLevel.Information,
+        new EventId(2, "PublisherStarting"),
+        "Starting Broadcast Box publisher for item {ItemId} with preset {Preset}");
     private static readonly Action<ILogger, int, int, Exception?> LogPublisherExited = LoggerMessage.Define<int, int>(
         LogLevel.Information,
-        new EventId(2, "PublisherExited"),
+        new EventId(3, "PublisherExited"),
         "Broadcast Box FFmpeg publisher {ProcessId} exited with code {ExitCode}");
 
     private readonly FfmpegCapabilityProbe _capabilityProbe;
@@ -94,6 +98,7 @@ public sealed class BroadcastSessionManager : IDisposable
 
             ResetSession(video);
             _status = BroadcastSessionStatus.Starting;
+            LogPublisherStarting(_logger, video.Id, request.Preset, null);
             var process = new Process
             {
                 StartInfo = CreateStartInfo(_mediaEncoder.EncoderPath, video.Path, request.Preset, configuration),
@@ -112,6 +117,7 @@ public sealed class BroadcastSessionManager : IDisposable
             {
                 process.Dispose();
                 _status = BroadcastSessionStatus.Failed;
+                _failure = "FFmpeg failed to start.";
                 throw;
             }
 
