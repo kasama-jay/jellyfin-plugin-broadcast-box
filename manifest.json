@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.0.2.0",
+        "changelog": "Fix dashboard requests and add detailed diagnostic logging.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/kasama-jay/jellyfin-plugin-broadcast-box/releases/download/v0.0.2/jellyfin-plugin-broadcast-box-0.0.2.zip",
+        "checksum": "54AE0C963EA84D0022AF0237758CEB86",
+        "timestamp": "2026-09-14T16:31:30Z"
+      },
+      {
         "version": "0.0.1.0",
         "changelog": "Initial WHIP publisher release.",
         "targetAbi": "12.0.0.0",
