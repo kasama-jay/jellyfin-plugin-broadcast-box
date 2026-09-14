@@ -28,7 +28,24 @@ dotnet build --configuration Release
 dotnet test --configuration Release
 ```
 
-Copy the published plugin DLL(s) into a dedicated Jellyfin plugin directory and restart Jellyfin. Do not commit Jellyfin configuration, Broadcast Box tokens, or generated plugin artifacts.
+## Manual installation
+
+Build and publish the plugin:
+
+```sh
+dotnet publish Jellyfin.Plugin.BroadcastBox.csproj --configuration Release --output ./dist
+```
+
+Copy the **contents** of `dist/` (including `Jellyfin.Plugin.BroadcastBox.dll` and `meta.json`) to a new subdirectory of Jellyfin's plugins directory, then restart Jellyfin. For example:
+
+```sh
+install -d /var/lib/jellyfin/plugins/BroadcastBox
+install -m 0644 ./dist/Jellyfin.Plugin.BroadcastBox.dll ./dist/meta.json /var/lib/jellyfin/plugins/BroadcastBox/
+```
+
+The local manifest is [`meta.json`](meta.json): it declares the plugin GUID, version, Jellyfin 12 ABI (`12.0.0.0`), and assembly. [`build.yaml`](build.yaml) is the source metadata for eventual Jellyfin plugin-repository/catalog packaging; it is not needed for manual installation.
+
+Do not commit Jellyfin configuration, Broadcast Box tokens, or generated plugin artifacts.
 
 ## Status
 
