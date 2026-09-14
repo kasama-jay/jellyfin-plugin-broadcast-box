@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "b4d3d127-a4cb-4d11-aab9-8b29fe6b74f4",
+    "name": "Broadcast Box",
+    "overview": "Publish Jellyfin media to Broadcast Box over WHIP.",
+    "description": "Publish a selected local Jellyfin video to Broadcast Box via FFmpeg WHIP. Requires Jellyfin 12 and an FFmpeg binary with the whip muxer, libx264, and libopus.",
+    "owner": "kasama-jay",
+    "category": "General",
+    "versions": [
+      {
+        "version": "0.0.1.0",
+        "changelog": "Initial WHIP publisher release.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/kasama-jay/jellyfin-plugin-broadcast-box/releases/download/v0.0.1/jellyfin-plugin-broadcast-box-0.0.1.zip",
+        "checksum": "03300AD06924C7B92D46D81F8752EDB9",
+        "timestamp": "2026-09-14T14:54:24Z"
+      }
+    ]
+  }
+]

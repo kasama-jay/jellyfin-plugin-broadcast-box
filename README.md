@@ -28,6 +28,16 @@ dotnet build --configuration Release
 dotnet test --configuration Release
 ```
 
+## Install through Jellyfin
+
+In Dashboard → Plugins → Repositories, add this repository URL:
+
+```text
+https://raw.githubusercontent.com/kasama-jay/jellyfin-plugin-broadcast-box/main/manifest.json
+```
+
+Refresh the catalog, then install **Broadcast Box** from the plugin list. The catalog pins each release ZIP with an MD5 checksum.
+
 ## Manual installation
 
 Build and publish the plugin:
