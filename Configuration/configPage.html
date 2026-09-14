@@ -2,12 +2,102 @@
 <html lang="en">
 <head><meta charset="utf-8"><title>Broadcast Box</title></head>
 <body>
-  <div id="BroadcastBoxConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+  <div id="BroadcastBoxConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
     <div data-role="content"><div class="content-primary">
-      <h1>Broadcast Box</h1>
-      <p>Publisher controls will be added after FFmpeg capability validation is implemented.</p>
-      <p>Do not place your bearer token in browser-visible status or diagnostics.</p>
+      <form id="BroadcastBoxConfigForm">
+        <h1>Broadcast Box</h1>
+        <div class="inputContainer">
+          <label class="inputLabel inputLabelUnfocused" for="WhipUrl">WHIP URL</label>
+          <input id="WhipUrl" type="url" is="emby-input" required />
+          <div class="fieldDescription">For example: https://broadcast-box.example/api/whip</div>
+        </div>
+        <div class="inputContainer">
+          <label class="inputLabel inputLabelUnfocused" for="BearerToken">Publisher bearer token</label>
+          <input id="BearerToken" type="password" is="emby-input" autocomplete="off" />
+        </div>
+        <div class="inputContainer">
+          <label class="inputLabel inputLabelUnfocused" for="StreamKey">Stream key</label>
+          <input id="StreamKey" type="text" is="emby-input" required />
+        </div>
+        <div class="checkboxContainer checkboxContainer-withDescription">
+          <label class="emby-checkbox-label"><input id="AllowInsecureHttp" type="checkbox" is="emby-checkbox" /><span>Allow insecure HTTP</span></label>
+          <div class="fieldDescription">Only enable for an explicitly trusted LAN endpoint.</div>
+        </div>
+        <button is="emby-button" type="submit" class="raised button-submit block emby-button"><span>Save connection settings</span></button>
+      </form>
+
+      <h2>Publisher</h2>
+      <div id="CapabilityStatus"></div>
+      <div class="inputContainer">
+        <label class="inputLabel inputLabelUnfocused" for="ItemId">Jellyfin item ID</label>
+        <input id="ItemId" type="text" is="emby-input" placeholder="UUID from the item URL" />
+      </div>
+      <div class="selectContainer">
+        <label class="selectLabel" for="Preset">Quality</label>
+        <select id="Preset" is="emby-select" class="emby-select-withcolor emby-select">
+          <option value="0">720p / 2.5 Mbps</option>
+          <option value="1" selected>1080p / 5 Mbps</option>
+        </select>
+      </div>
+      <button id="StartBroadcast" is="emby-button" type="button" class="raised button-submit block emby-button"><span>Start broadcast</span></button>
+      <button id="StopBroadcast" is="emby-button" type="button" class="raised button-cancel block emby-button"><span>Stop broadcast</span></button>
+      <pre id="SessionStatus" style="white-space:pre-wrap"></pre>
     </div></div>
+    <script>
+      (() => {
+        const pluginId = 'b4d3d127-a4cb-4d11-aab9-8b29fe6b74f4';
+        const element = id => document.querySelector(`#${id}`);
+        const request = (type, path, data) => ApiClient.ajax({
+          type,
+          url: ApiClient.getUrl(path),
+          data: data === undefined ? undefined : JSON.stringify(data),
+          contentType: 'application/json'
+        });
+        const show = (id, value) => { element(id).textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); };
+
+        async function refresh() {
+          try {
+            const [capabilities, session] = await Promise.all([
+              request('GET', 'BroadcastBox/capabilities'),
+              request('GET', 'BroadcastBox/session')
+            ]);
+            show('CapabilityStatus', capabilities.isReady ? `FFmpeg ready: ${capabilities.version}` : `FFmpeg unavailable: ${capabilities.error || 'WHIP, libx264, and libopus are required.'}`);
+            show('SessionStatus', session);
+          } catch (error) {
+            show('SessionStatus', error.message || String(error));
+          }
+        }
+
+        document.querySelector('#BroadcastBoxConfigPage').addEventListener('pageshow', async () => {
+          const config = await ApiClient.getPluginConfiguration(pluginId);
+          element('WhipUrl').value = config.WhipUrl || '';
+          element('BearerToken').value = config.BearerToken || '';
+          element('StreamKey').value = config.StreamKey || '';
+          element('AllowInsecureHttp').checked = !!config.AllowInsecureHttp;
+          await refresh();
+        });
+        element('BroadcastBoxConfigForm').addEventListener('submit', async event => {
+          event.preventDefault();
+          const config = await ApiClient.getPluginConfiguration(pluginId);
+          config.WhipUrl = element('WhipUrl').value.trim();
+          config.BearerToken = element('BearerToken').value;
+          config.StreamKey = element('StreamKey').value.trim();
+          config.AllowInsecureHttp = element('AllowInsecureHttp').checked;
+          await ApiClient.updatePluginConfiguration(pluginId, config);
+          Dashboard.processPluginConfigurationUpdateResult();
+          await refresh();
+        });
+        element('StartBroadcast').addEventListener('click', async () => {
+          try {
+            show('SessionStatus', await request('POST', 'BroadcastBox/session', { itemId: element('ItemId').value.trim(), preset: Number(element('Preset').value) }));
+          } catch (error) { show('SessionStatus', error.message || String(error)); }
+        });
+        element('StopBroadcast').addEventListener('click', async () => {
+          try { await request('DELETE', 'BroadcastBox/session'); await refresh(); }
+          catch (error) { show('SessionStatus', error.message || String(error)); }
+        });
+      })();
+    </script>
   </div>
 </body>
 </html>

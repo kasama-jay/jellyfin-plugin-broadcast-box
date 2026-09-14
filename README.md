@@ -2,13 +2,13 @@
 
 A private Jellyfin 12 plugin for publishing selected local Jellyfin media to [Broadcast Box](https://github.com/Glimesh/broadcast-box) over FFmpeg WHIP.
 
-The implementation plan is in [PLAN.md](PLAN.md). The initial scaffold establishes the Jellyfin 12/.NET 10 plugin shape, a safe singleton session owner, shutdown handling, and a non-secret status endpoint. It deliberately does **not** start FFmpeg yet.
+The implementation plan is in [PLAN.md](PLAN.md). Version 0.0.1 provides an administrator-only dashboard for configuring Broadcast Box, validating the configured Jellyfin FFmpeg binary, and starting/stopping one publisher process.
 
 ## Requirements
 
 - Jellyfin 12 with the matching `Jellyfin.Controller` and `Jellyfin.Model` package version.
 - .NET SDK 10 to build.
-- Jellyfin's configured FFmpeg must provide `whip`, an H.264 encoder, and `libopus`.
+- Jellyfin's configured FFmpeg must provide `whip`, `libx264`, and `libopus`.
 - A configured Broadcast Box WHIP endpoint and publisher token.
 
 ## Verify FFmpeg
@@ -45,8 +45,13 @@ install -m 0644 ./dist/Jellyfin.Plugin.BroadcastBox.dll ./dist/meta.json /var/li
 
 The local manifest is [`meta.json`](meta.json): it declares the plugin GUID, version, Jellyfin 12 ABI (`12.0.0.0`), and assembly. [`build.yaml`](build.yaml) is the source metadata for eventual Jellyfin plugin-repository/catalog packaging; it is not needed for manual installation.
 
+After restart, open Dashboard → Plugins → Broadcast Box. Configure the WHIP URL, publisher token, and stream key. Confirm the capability check is ready, then enter the Jellyfin item UUID (available in the item URL) and start the broadcast.
+
+## Security and limitations
+
+- Controls require Jellyfin's `RequiresElevation` policy.
+- The token is never returned by status APIs or included in captured FFmpeg diagnostics; it remains part of Jellyfin's administrator-controlled plugin configuration.
+- v0.0.1 supports one local filesystem video at a time, starts at time zero, transcodes to H.264/Opus, and offers fixed 720p or 1080p presets.
+- It does not yet support queues, subtitles, HDR/tone mapping, remote media, live TV, or hardware encoder profiles.
+
 Do not commit Jellyfin configuration, Broadcast Box tokens, or generated plugin artifacts.
-
-## Status
-
-Scaffold / milestone 1. See [PLAN.md](PLAN.md) for the remaining milestones.
