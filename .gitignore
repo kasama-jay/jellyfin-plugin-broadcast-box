@@ -21,3 +21,5 @@ profiles/
 *.pfx
 *.key
 *.pem
+
+dist/
