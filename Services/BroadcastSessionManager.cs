@@ -8,8 +8,13 @@ namespace Jellyfin.Plugin.BroadcastBox.Services;
 /// Owns the sole FFmpeg publishing process. Process launch is intentionally not
 /// implemented until the capability probe and authorization boundary are tested.
 /// </summary>
-public sealed class BroadcastSessionManager
+public sealed class BroadcastSessionManager : IDisposable
 {
+    private static readonly Action<ILogger, int, Exception?> LogStoppingPublisher = LoggerMessage.Define<int>(
+        LogLevel.Information,
+        new EventId(1, "StoppingPublisher"),
+        "Stopping Broadcast Box FFmpeg publisher {ProcessId}");
+
     private readonly ILogger<BroadcastSessionManager> _logger;
     private readonly SemaphoreSlim _sessionLock = new(1, 1);
     private BroadcastSessionStatus _status = BroadcastSessionStatus.Stopped;
@@ -38,7 +43,7 @@ public sealed class BroadcastSessionManager
             }
 
             _status = BroadcastSessionStatus.Stopping;
-            _logger.LogInformation("Stopping Broadcast Box FFmpeg publisher {ProcessId}", _process.Id);
+            LogStoppingPublisher(_logger, _process.Id, null);
             _process.Kill(entireProcessTree: true);
             await _process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             _process.Dispose();
@@ -49,5 +54,13 @@ public sealed class BroadcastSessionManager
         {
             _sessionLock.Release();
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _process?.Dispose();
+        _sessionLock.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

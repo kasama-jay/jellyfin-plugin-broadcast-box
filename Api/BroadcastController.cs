@@ -1,6 +1,7 @@
 using Jellyfin.Plugin.BroadcastBox.Models;
 using Jellyfin.Plugin.BroadcastBox.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Jellyfin.Plugin.BroadcastBox.Api;
