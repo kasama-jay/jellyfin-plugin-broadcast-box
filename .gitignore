@@ -1,0 +1,23 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local/editor state
+.vs/
+.vscode/
+.idea/
+
+# Secrets and local deployment configuration
+.env
+.env.*
+!.env.example
+secrets/
+profiles/
+*.pfx
+*.key
+*.pem
