@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.0.3.0",
+        "changelog": "Emit plugin action diagnostics at Jellyfin's default Information log level.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/kasama-jay/jellyfin-plugin-broadcast-box/releases/download/v0.0.3/jellyfin-plugin-broadcast-box-0.0.3.zip",
+        "checksum": "D1ED1C78F1F73F54922FF1C3A1747B1B",
+        "timestamp": "2026-09-14T16:32:44Z"
+      },
+      {
         "version": "0.0.2.0",
         "changelog": "Fix dashboard requests and add detailed diagnostic logging.",
         "targetAbi": "12.0.0.0",
