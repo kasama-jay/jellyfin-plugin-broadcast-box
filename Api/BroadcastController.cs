@@ -14,11 +14,11 @@ namespace Jellyfin.Plugin.BroadcastBox.Api;
 public sealed class BroadcastController : ControllerBase
 {
     private static readonly Action<ILogger, Exception?> LogCapabilitiesRequested = LoggerMessage.Define(
-        LogLevel.Debug,
+        LogLevel.Information,
         new EventId(1, "CapabilitiesRequested"),
         "Broadcast Box capability check requested");
     private static readonly Action<ILogger, BroadcastSessionStatus, Exception?> LogSessionRequested = LoggerMessage.Define<BroadcastSessionStatus>(
-        LogLevel.Debug,
+        LogLevel.Information,
         new EventId(2, "SessionRequested"),
         "Broadcast Box session status requested; state is {Status}");
     private static readonly Action<ILogger, Guid, BroadcastQualityPreset, Exception?> LogStartRequested = LoggerMessage.Define<Guid, BroadcastQualityPreset>(

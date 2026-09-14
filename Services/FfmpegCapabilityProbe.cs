@@ -10,7 +10,7 @@ namespace Jellyfin.Plugin.BroadcastBox.Services;
 public sealed class FfmpegCapabilityProbe : IDisposable
 {
     private static readonly Action<ILogger, string, Exception?> LogProbeStarted = LoggerMessage.Define<string>(
-        LogLevel.Debug,
+        LogLevel.Information,
         new EventId(1, "ProbeStarted"),
         "Probing configured FFmpeg at {EncoderPath}");
     private static readonly Action<ILogger, bool, bool, bool, Exception?> LogProbeCompleted = LoggerMessage.Define<bool, bool, bool>(

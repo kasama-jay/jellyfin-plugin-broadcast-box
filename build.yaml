@@ -2,7 +2,7 @@
 # Source metadata for Jellyfin's plugin-repository build tooling.
 name: "Broadcast Box"
 guid: "b4d3d127-a4cb-4d11-aab9-8b29fe6b74f4"
-version: "0.0.2.0"
+version: "0.0.3.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Publish Jellyfin media to Broadcast Box over WHIP."
@@ -13,4 +13,4 @@ owner: "kasama-jay"
 artifacts:
   - "Jellyfin.Plugin.BroadcastBox.dll"
 changelog: >
-  Fix dashboard requests and add detailed diagnostic logging.
+  Emit plugin action diagnostics at Jellyfin's default Information log level.
