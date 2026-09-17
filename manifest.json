@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.0.4.0",
+        "changelog": "Fix dashboard control binding and add visible browser-side action diagnostics.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/kasama-jay/jellyfin-plugin-broadcast-box/releases/download/v0.0.4/jellyfin-plugin-broadcast-box-0.0.4.zip",
+        "checksum": "EBFA460A0189F0689697FD7A1AA36E44",
+        "timestamp": "2026-09-17T23:25:35Z"
+      },
+      {
         "version": "0.0.3.0",
         "changelog": "Emit plugin action diagnostics at Jellyfin's default Information log level.",
         "targetAbi": "12.0.0.0",
