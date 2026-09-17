@@ -28,83 +28,110 @@
 
       <h2>Publisher</h2>
       <div id="CapabilityStatus"></div>
-      <div class="inputContainer">
-        <label class="inputLabel inputLabelUnfocused" for="ItemId">Jellyfin item ID</label>
-        <input id="ItemId" type="text" is="emby-input" placeholder="UUID from the item URL" />
-      </div>
-      <div class="selectContainer">
-        <label class="selectLabel" for="Preset">Quality</label>
-        <select id="Preset" is="emby-select" class="emby-select-withcolor emby-select">
-          <option value="0">720p / 2.5 Mbps</option>
-          <option value="1" selected>1080p / 5 Mbps</option>
-        </select>
-      </div>
-      <button id="StartBroadcast" is="emby-button" type="button" class="raised button-submit block emby-button"><span>Start broadcast</span></button>
+      <!-- Keep the publisher controls in a real form. Jellyfin's emby-button may replace
+           the visual button node, so events are delegated from the stable page container. -->
+      <form id="BroadcastBoxStartForm">
+        <div class="inputContainer">
+          <label class="inputLabel inputLabelUnfocused" for="ItemId">Jellyfin item ID</label>
+          <input id="ItemId" type="text" is="emby-input" required placeholder="UUID from the item URL" />
+        </div>
+        <div class="selectContainer">
+          <label class="selectLabel" for="Preset">Quality</label>
+          <select id="Preset" is="emby-select" class="emby-select-withcolor emby-select">
+            <option value="0">720p / 2.5 Mbps</option>
+            <option value="1" selected>1080p / 5 Mbps</option>
+          </select>
+        </div>
+        <button is="emby-button" type="submit" class="raised button-submit block emby-button"><span>Start broadcast</span></button>
+      </form>
       <button id="StopBroadcast" is="emby-button" type="button" class="raised button-cancel block emby-button"><span>Stop broadcast</span></button>
       <pre id="SessionStatus" style="white-space:pre-wrap"></pre>
     </div></div>
-    <script>
-      (() => {
-        const pluginId = 'b4d3d127-a4cb-4d11-aab9-8b29fe6b74f4';
-        const element = id => document.querySelector(`#${id}`);
-        const request = async (type, path, data) => {
-          const options = {
-            type,
-            url: ApiClient.getUrl(path),
-            data: data === undefined ? undefined : JSON.stringify(data),
-            contentType: 'application/json'
-          };
-          console.debug('[Broadcast Box] request', type, options.url);
-          const result = await ApiClient.fetch(options);
-          return typeof result?.json === 'function' ? result.json() : result;
+    <script type="text/javascript">
+      (function () {
+        var pluginId = 'b4d3d127-a4cb-4d11-aab9-8b29fe6b74f4';
+        var page = $('#BroadcastBoxConfigPage');
+        var get = function (id) { return document.getElementById(id); };
+        var show = function (id, value) { get(id).textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); };
+        var debug = function (message, detail) {
+          console.info('[Broadcast Box]', message, detail || '');
+          show('SessionStatus', detail === undefined ? message : message + '\n' + (typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2)));
         };
-        const show = (id, value) => { element(id).textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); };
-        const reportClientError = error => {
-          console.error('[Broadcast Box] action failed', error);
-          show('SessionStatus', error?.message || String(error));
+        var error = function (message, exception) {
+          console.error('[Broadcast Box]', message, exception);
+          show('SessionStatus', message + '\n' + (exception && (exception.message || String(exception))));
         };
-
-        async function refresh() {
-          try {
-            const [capabilities, session] = await Promise.all([
-              request('GET', 'BroadcastBox/capabilities'),
-              request('GET', 'BroadcastBox/session')
-            ]);
-            show('CapabilityStatus', capabilities.isReady ? `FFmpeg ready: ${capabilities.version}` : `FFmpeg unavailable: ${capabilities.error || 'WHIP, libx264, and libopus are required.'}`);
-            show('SessionStatus', session);
-          } catch (error) {
-            reportClientError(error);
+        var request = function (type, path, data) {
+          var options = { type: type, url: ApiClient.getUrl(path) };
+          if (data !== undefined) {
+            options.data = JSON.stringify(data);
+            options.contentType = 'application/json';
           }
-        }
+          console.info('[Broadcast Box] issuing request', type, options.url);
+          return ApiClient.fetch(options).then(function (result) {
+            return result && typeof result.json === 'function' ? result.json() : result;
+          });
+        };
+        var refresh = function () {
+          debug('Refreshing Broadcast Box status');
+          return Promise.all([request('GET', 'BroadcastBox/capabilities'), request('GET', 'BroadcastBox/session')])
+            .then(function (results) {
+              var capabilities = results[0];
+              var session = results[1];
+              get('CapabilityStatus').textContent = capabilities.isReady
+                ? 'FFmpeg ready: ' + capabilities.version
+                : 'FFmpeg unavailable: ' + (capabilities.error || 'WHIP, libx264, and libopus are required.');
+              show('SessionStatus', session);
+            })
+            .catch(function (exception) { error('Failed to refresh Broadcast Box status', exception); });
+        };
 
-        document.querySelector('#BroadcastBoxConfigPage').addEventListener('pageshow', async () => {
-          const config = await ApiClient.getPluginConfiguration(pluginId);
-          element('WhipUrl').value = config.WhipUrl || '';
-          element('BearerToken').value = config.BearerToken || '';
-          element('StreamKey').value = config.StreamKey || '';
-          element('AllowInsecureHttp').checked = !!config.AllowInsecureHttp;
-          await refresh();
+        // Delegated, namespaced handlers survive Jellyfin's emby-button upgrades and avoid duplicates on page revisits.
+        page.off('pageshow.broadcastBox').on('pageshow.broadcastBox', function () {
+          console.info('[Broadcast Box] configuration page shown; binding controls');
+          ApiClient.getPluginConfiguration(pluginId)
+            .then(function (config) {
+              get('WhipUrl').value = config.WhipUrl || '';
+              get('BearerToken').value = config.BearerToken || '';
+              get('StreamKey').value = config.StreamKey || '';
+              get('AllowInsecureHttp').checked = !!config.AllowInsecureHttp;
+              return refresh();
+            })
+            .catch(function (exception) { error('Failed to load Broadcast Box configuration', exception); });
         });
-        element('BroadcastBoxConfigForm').addEventListener('submit', async event => {
+        page.off('submit.broadcastBoxConfig', '#BroadcastBoxConfigForm').on('submit.broadcastBoxConfig', '#BroadcastBoxConfigForm', function (event) {
           event.preventDefault();
-          const config = await ApiClient.getPluginConfiguration(pluginId);
-          config.WhipUrl = element('WhipUrl').value.trim();
-          config.BearerToken = element('BearerToken').value;
-          config.StreamKey = element('StreamKey').value.trim();
-          config.AllowInsecureHttp = element('AllowInsecureHttp').checked;
-          await ApiClient.updatePluginConfiguration(pluginId, config);
-          Dashboard.processPluginConfigurationUpdateResult();
-          await refresh();
+          console.info('[Broadcast Box] saving configuration');
+          ApiClient.getPluginConfiguration(pluginId)
+            .then(function (config) {
+              config.WhipUrl = get('WhipUrl').value.trim();
+              config.BearerToken = get('BearerToken').value;
+              config.StreamKey = get('StreamKey').value.trim();
+              config.AllowInsecureHttp = get('AllowInsecureHttp').checked;
+              return ApiClient.updatePluginConfiguration(pluginId, config);
+            })
+            .then(function () { Dashboard.processPluginConfigurationUpdateResult(); return refresh(); })
+            .catch(function (exception) { error('Failed to save Broadcast Box configuration', exception); });
+          return false;
         });
-        element('StartBroadcast').addEventListener('click', async () => {
-          try {
-            show('SessionStatus', await request('POST', 'BroadcastBox/session', { itemId: element('ItemId').value.trim(), preset: Number(element('Preset').value) }));
-          } catch (error) { reportClientError(error); }
+        page.off('submit.broadcastBoxStart', '#BroadcastBoxStartForm').on('submit.broadcastBoxStart', '#BroadcastBoxStartForm', function (event) {
+          event.preventDefault();
+          var payload = { itemId: get('ItemId').value.trim(), preset: Number(get('Preset').value) };
+          debug('Submitting Broadcast Box start request', payload);
+          request('POST', 'BroadcastBox/session', payload)
+            .then(function (session) { debug('Broadcast Box start request completed', session); })
+            .catch(function (exception) { error('Broadcast Box start request failed', exception); });
+          return false;
         });
-        element('StopBroadcast').addEventListener('click', async () => {
-          try { await request('DELETE', 'BroadcastBox/session'); await refresh(); }
-          catch (error) { reportClientError(error); }
+        page.off('click.broadcastBoxStop', '#StopBroadcast').on('click.broadcastBoxStop', '#StopBroadcast', function (event) {
+          event.preventDefault();
+          debug('Submitting Broadcast Box stop request');
+          request('DELETE', 'BroadcastBox/session')
+            .then(function () { return refresh(); })
+            .catch(function (exception) { error('Broadcast Box stop request failed', exception); });
+          return false;
         });
+        console.info('[Broadcast Box] dashboard script loaded');
       })();
     </script>
   </div>
