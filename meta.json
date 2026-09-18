@@ -1,14 +1,14 @@
 {
   "category": "General",
-  "changelog": "Fix dashboard control binding and add visible browser-side action diagnostics.",
+  "changelog": "Add per-item More-menu broadcast controls and File Transformation Web integration.",
   "description": "Publish selected local Jellyfin media to Broadcast Box via FFmpeg WHIP.",
   "guid": "b4d3d127-a4cb-4d11-aab9-8b29fe6b74f4",
   "name": "Broadcast Box",
   "overview": "Publish Jellyfin media to Broadcast Box over WHIP.",
   "owner": "kasama-jay",
   "targetAbi": "12.0.0.0",
-  "timestamp": "2026-09-14T17:00:00Z",
-  "version": "0.0.4.0",
+  "timestamp": "2026-09-17T23:40:00Z",
+  "version": "0.0.5.0",
   "status": 0,
   "autoUpdate": false,
   "assemblies": [
