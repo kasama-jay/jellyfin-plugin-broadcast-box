@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.0.5.0",
+        "changelog": "Add per-item More-menu broadcast controls and File Transformation Web integration.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/kasama-jay/jellyfin-plugin-broadcast-box/releases/download/v0.0.5/jellyfin-plugin-broadcast-box-0.0.5.zip",
+        "checksum": "AEE91489371BD63EF65101117CF2F0D6",
+        "timestamp": "2026-09-18T00:19:36Z"
+      },
+      {
         "version": "0.0.4.0",
         "changelog": "Fix dashboard control binding and add visible browser-side action diagnostics.",
         "targetAbi": "12.0.0.0",
