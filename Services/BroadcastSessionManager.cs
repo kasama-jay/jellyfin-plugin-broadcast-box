@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Globalization;
 using Jellyfin.Plugin.BroadcastBox.Configuration;
 using Jellyfin.Plugin.BroadcastBox.Models;
 using MediaBrowser.Controller.Entities;
@@ -101,7 +102,7 @@ public sealed class BroadcastSessionManager : IDisposable
             LogPublisherStarting(_logger, video.Id, request.Preset, null);
             var process = new Process
             {
-                StartInfo = CreateStartInfo(_mediaEncoder.EncoderPath, video.Path, request.Preset, configuration),
+                StartInfo = CreateStartInfo(_mediaEncoder.EncoderPath, video.Path, video.Id, request.Preset, configuration),
                 EnableRaisingEvents = true,
             };
             process.Exited += (_, _) => _ = ObserveExitAsync(process);
@@ -124,7 +125,29 @@ public sealed class BroadcastSessionManager : IDisposable
             _process = process;
             _startedAt = DateTimeOffset.UtcNow;
             _status = BroadcastSessionStatus.Running;
-            _ = CollectDiagnosticsAsync(process, configuration.BearerToken);
+            _ = CollectDiagnosticsAsync(process, video.Id.ToString("N", CultureInfo.InvariantCulture));
+            return GetSnapshot();
+        }
+        finally
+        {
+            _sessionLock.Release();
+        }
+    }
+
+    /// <summary>Pauses or resumes the active FFmpeg publisher.</summary>
+    public async Task<BroadcastSessionSnapshot> TogglePauseAsync(Guid itemId, CancellationToken cancellationToken)
+    {
+        await _sessionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_process is null || _process.HasExited || _itemId != itemId)
+            {
+                throw new InvalidOperationException("No active broadcast exists for this item.");
+            }
+
+            await _process.StandardInput.WriteLineAsync("p").ConfigureAwait(false);
+            await _process.StandardInput.FlushAsync(cancellationToken).ConfigureAwait(false);
+            _status = _status == BroadcastSessionStatus.Paused ? BroadcastSessionStatus.Running : BroadcastSessionStatus.Paused;
             return GetSnapshot();
         }
         finally
@@ -220,6 +243,7 @@ public sealed class BroadcastSessionManager : IDisposable
     private static ProcessStartInfo CreateStartInfo(
         string executable,
         string inputPath,
+        Guid itemId,
         BroadcastQualityPreset preset,
         PluginConfiguration configuration)
     {
@@ -243,7 +267,7 @@ public sealed class BroadcastSessionManager : IDisposable
             "-vf", $"scale=w={width}:h={height}:force_original_aspect_ratio=decrease",
             "-preset", "veryfast", "-tune", "zerolatency", "-bf", "0", "-g", "48", "-b:v", videoBitrate,
             "-c:a", "libopus", "-ar", "48000", "-ac", "2", "-b:a", "128k",
-            "-f", "whip", "-authorization", configuration.BearerToken, configuration.WhipUrl,
+            "-f", "whip", "-authorization", itemId.ToString("N", CultureInfo.InvariantCulture), configuration.WhipUrl,
         };
         foreach (var argument in arguments)
         {
@@ -268,11 +292,6 @@ public sealed class BroadcastSessionManager : IDisposable
 
     private static void ValidateConfiguration(PluginConfiguration configuration)
     {
-        if (string.IsNullOrWhiteSpace(configuration.BearerToken))
-        {
-            throw new InvalidOperationException("Configure a Broadcast Box bearer token first.");
-        }
-
         if (!Uri.TryCreate(configuration.WhipUrl, UriKind.Absolute, out var endpoint)
             || endpoint.Scheme is not ("https" or "http")
             || !string.IsNullOrEmpty(endpoint.UserInfo)
@@ -281,22 +300,19 @@ public sealed class BroadcastSessionManager : IDisposable
             throw new InvalidOperationException("Configure a valid HTTPS WHIP URL. HTTP requires explicit opt-in.");
         }
 
-        if (string.IsNullOrWhiteSpace(configuration.StreamKey))
-        {
-            throw new InvalidOperationException("Configure the Broadcast Box stream key first.");
-        }
     }
 
-    private static string? ViewerUrl(PluginConfiguration? configuration)
+    private string? ViewerUrl(PluginConfiguration? configuration)
     {
-        if (configuration is null || !Uri.TryCreate(configuration.WhipUrl, UriKind.Absolute, out var whipUri)
-            || string.IsNullOrWhiteSpace(configuration.StreamKey))
+        if (configuration is null
+            || _itemId is null
+            || !Uri.TryCreate(configuration.WhipUrl, UriKind.Absolute, out var whipUri))
         {
             return null;
         }
 
         var baseUri = new Uri(whipUri.GetLeftPart(UriPartial.Authority));
-        return new Uri(baseUri, Uri.EscapeDataString(configuration.StreamKey)).ToString();
+        return _itemId is null ? null : new Uri(baseUri, _itemId.Value.ToString("N", CultureInfo.InvariantCulture)).ToString();
     }
 
     private static string Redact(string value, string token)

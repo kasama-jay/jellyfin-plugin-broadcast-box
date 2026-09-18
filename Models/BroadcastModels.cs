@@ -49,6 +49,9 @@ public enum BroadcastSessionStatus
     /// <summary>FFmpeg is publishing.</summary>
     Running,
 
+    /// <summary>FFmpeg input is paused.</summary>
+    Paused,
+
     /// <summary>FFmpeg is being stopped.</summary>
     Stopping,
 

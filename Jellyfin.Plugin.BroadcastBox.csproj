@@ -19,6 +19,7 @@
     <PackageReference Include="Jellyfin.Model" Version="12.0.0">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +28,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Configuration/configPage.html" />
+    <EmbeddedResource Include="Inject/broadcastBoxWeb.js" />
     <None Update="meta.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

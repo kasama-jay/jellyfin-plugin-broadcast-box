@@ -104,6 +104,22 @@ public sealed class BroadcastController : ControllerBase
         }
     }
 
+    /// <summary>Pauses or resumes the active publisher for an item.</summary>
+    [HttpPost("items/{itemId}/pause")]
+    [ProducesResponseType<BroadcastSessionSnapshot>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<BroadcastSessionSnapshot>> Pause(Guid itemId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _sessionManager.TogglePauseAsync(itemId, cancellationToken).ConfigureAwait(false));
+        }
+        catch (InvalidOperationException exception)
+        {
+            LogStartRejected(_logger, exception.Message, null);
+            return Conflict(new ProblemDetails { Detail = exception.Message, Status = StatusCodes.Status409Conflict });
+        }
+    }
+
     /// <summary>Stops the active publisher.</summary>
     [HttpDelete("session")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

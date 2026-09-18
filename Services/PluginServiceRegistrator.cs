@@ -14,5 +14,6 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<FfmpegCapabilityProbe>();
         serviceCollection.AddSingleton<BroadcastSessionManager>();
         serviceCollection.AddHostedService<BroadcastShutdownService>();
+        serviceCollection.AddHostedService<WebInjectionService>();
     }
 }
